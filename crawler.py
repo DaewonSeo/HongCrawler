@@ -6,6 +6,8 @@ import requests
 from typing import Dict, List, Tuple
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
+from tqdm import tqdm
+
 
 HEADERS = {
     'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)\
@@ -22,19 +24,32 @@ def run():
         os.mkdir(DATA_DIR)
     except FileExistsError:
         pass
-
+    
     page = 1
-    last_id = get_latest_post_id()
+    total = get_latest_post_id()
+    post_list = []
     while True:
         url_list = get_url_and_post_id(page)
-        with ThreadPoolExecutor(max_workers=2) as exe:
-            for post in exe.map(fetch_post, url_list):
-                if post is None:
-                    break
-                save_post(post)
-                logging.info(f'전체 {last_id} / {last_id - post["id"]} | {post["id"]} : {post["title"]} 저장 완료')
-        page += 1
-        time.sleep(5)
+        # 가져올 게시글이 존재할 경우 프로그램 동작
+        if url_list is not None:
+            with ThreadPoolExecutor(max_workers=2) as exe:
+                for post in exe.map(fetch_post, url_list):
+                    if post is None:
+                        continue
+                    post_list.append(post)
+                    logging.info(f'전체 {total} / {total - post["id"]} | {post["id"]} : {post["title"]} >> 스크랩 완료')
+            page += 1
+            time.sleep(5)
+        # 가져올 게시글이 없는 경우 프로그램 종료
+        else:
+            break
+    
+    saved_post = len(post_list) # 저장될 게시글의 개수
+
+    ## 스택을 활용해 가져온 순서의 반대인 오름차순으로 CSV File 저장
+    for _ in tqdm(range(saved_post)):
+        save_post(post_list.pop())
+    logging.info(f'총 {saved_post}개의 게시글이 저장완료 되었습니다.')
 
 
 def get_latest_post_id() -> int:
@@ -62,6 +77,8 @@ def get_url_and_post_id(page_num: int) -> List[Tuple] or None:
     except AttributeError:
         print('더이상 데이터가 존재하지 않습니다.')
         return None
+
+    if not url_list: return None
 
     return url_list
 
