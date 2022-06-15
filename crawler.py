@@ -25,11 +25,13 @@ def run():
     except FileExistsError:
         pass
     
+    
     page = 1
     total = get_latest_post_id()
+    recent = get_latest_saved_post_id()
     post_list = []
     while True:
-        url_list = get_url_and_post_id(page)
+        url_list = get_url_and_post_id(page, recent)
         # 가져올 게시글이 존재할 경우 프로그램 동작
         if url_list is not None:
             with ThreadPoolExecutor(max_workers=2) as exe:
@@ -57,12 +59,12 @@ def get_latest_post_id() -> int:
     url = 'https://theyouthdream.com/qna/category/273'
     html = requests.get(url, headers=HEADERS).text
     soup = BeautifulSoup(html, 'lxml')
-    href = soup.select_one('.app-board-section tbody > tr:nth-child(2) td.no').text
+    href = soup.select_one('.app-board-section tbody > tr:nth-child(6) td.no').text
     post_id = int(href.strip())
     return post_id
 
 
-def get_url_and_post_id(page_num: int) -> List[Tuple] or None:
+def get_url_and_post_id(page_num: int, recent: int) -> List[Tuple] or None:
     """페이지별 post id 게시글 링크 가져오기"""
     url = f'https://theyouthdream.com/qna/category/273?page={page_num}'
     html = requests.get(url, headers=HEADERS).text
@@ -70,17 +72,20 @@ def get_url_and_post_id(page_num: int) -> List[Tuple] or None:
     url_list = []
     try:
         post_id = soup.select('.app-board-section tbody > tr > td.no')
-        # 공지사항 글을 제외한 해당 페이지의 모든 post url 가져오기
-        urls = soup.select('.app-board-section tbody > tr > td.title > a')[1:]
-        for p, u in zip(post_id, urls):
-            url_list.append((int(p.text.strip()), u['href']))
-    except AttributeError:
+        top_post_id = int(post_id[0].text.strip())
+        if top_post_id > recent:
+        # 공지사항 글을 제외한 해당 페이지의 모든 post url 가져오기 -> 최근 공지사항 증가로 인덱스 번호 변경
+            urls = soup.select('.app-board-section tbody > tr > td.title > a')[5:]
+            for p, u in zip(post_id, urls):
+                url_list.append((int(p.text.strip()), u['href']))
+            return url_list
+        else:
+            print('새로운 데이터가 없으므로, 파싱을 종료합니다.')
+            return None
+
+    except (AttributeError, IndexError):
         print('더이상 데이터가 존재하지 않습니다.')
         return None
-
-    if not url_list: return None
-
-    return url_list
 
 
 def get_latest_saved_post_id() -> int:
@@ -149,9 +154,9 @@ def fetch_html(url: str) -> str:
         raise e
     
     except requests.ConnectionError:
-        logging.info('5초간 정지 후 재가동합니다.')
-        time.sleep(5)
-        fetch_html(url)
+        logging.info('30초간 정지 후 재가동합니다.')
+        time.sleep(30)
+        print(fetch_html(url))
 
 
 def query(soup: BeautifulSoup, selector: str) -> str:
