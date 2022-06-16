@@ -110,7 +110,6 @@ def fetch_post(url_list: Tuple) -> Dict[str, any] or None:
 
     soup = BeautifulSoup(html, "lxml")
     title = query(soup, '.app-board-container h1')
-    writer = query(soup, '.author')
     datetime = query(soup, '.app-profile-body > div > el-tooltip > div')
     question = query(soup, '.app-article-content.app-clearfix div.rhymix_content.xe_content')
     answer = query(soup, '#app-board-comment-list div.rhymix_content.xe_content')
@@ -118,7 +117,6 @@ def fetch_post(url_list: Tuple) -> Dict[str, any] or None:
     return {
         'id': url_list[0],
         'title': title,
-        'writer': writer,
         'datetime': datetime,
         'question': '' if question is None else clean_text(question.rstrip()),
         'answer': '' if answer is None else clean_text(answer.rstrip())
@@ -128,17 +126,17 @@ def fetch_post(url_list: Tuple) -> Dict[str, any] or None:
 def save_post(post: Dict[str, any]) -> None:
     """게시글을 CSV 파일로 작성"""
     cols = [
-        'id', 'title', 'writer', 'datetime', 'question', 'answer'
+        'id', 'title', 'datetime', 'question', 'answer'
     ]
     # 파일이 없을 경우 새로 만들고 컬럼 저장
     if not os.path.isfile(CSV_FILE):
         with open(CSV_FILE, 'w', newline='', encoding='utf-8') as f:
-            w = csv.writer(f)
+            w = csv.writer(f, delimiter='///')
             w.writerow(cols)
     
     # 파일이 있으면 'a'로 열고 제일 마지막 줄부터 저장 시작
     with open(CSV_FILE, 'a', newline='', encoding='utf-8') as f:
-        w = csv.writer(f)
+        w = csv.writer(f, delimiter='///')
         w.writerow(post[col] for col in cols)
 
 
