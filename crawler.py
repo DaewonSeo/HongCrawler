@@ -113,7 +113,7 @@ def fetch_post(url_list: Tuple) -> Dict[str, any] or None:
     datetime = query(soup, '.app-profile-body > div > el-tooltip > div')
     question = query(soup, '.app-article-content.app-clearfix div.rhymix_content.xe_content')
     answer = query(soup, '#app-board-comment-list div.rhymix_content.xe_content')
-
+    
     return {
         'id': url_list[0],
         'title': title,
@@ -131,12 +131,12 @@ def save_post(post: Dict[str, any]) -> None:
     # 파일이 없을 경우 새로 만들고 컬럼 저장
     if not os.path.isfile(CSV_FILE):
         with open(CSV_FILE, 'w', newline='', encoding='utf-8') as f:
-            w = csv.writer(f, delimiter='///')
+            w = csv.writer(f)
             w.writerow(cols)
     
     # 파일이 있으면 'a'로 열고 제일 마지막 줄부터 저장 시작
     with open(CSV_FILE, 'a', newline='', encoding='utf-8') as f:
-        w = csv.writer(f, delimiter='///')
+        w = csv.writer(f)
         w.writerow(post[col] for col in cols)
 
 
@@ -169,4 +169,5 @@ def clean_text(text: str) -> str:
 
 
 if __name__ == "__main__":
-    run()
+    fetch_post
+    # run()
